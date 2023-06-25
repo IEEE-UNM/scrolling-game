@@ -1,0 +1,37 @@
+[package]
+name = "scrolling-game"
+version = "0.1.0"
+authors = ["hi563145 <gitlab.miltonian@aleeas.com>"]
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
+[[bin]]
+name = "scrolling-game"
+test = false
+bench = false
+
+[dependencies]
+panic-halt = "0.2.0"
+ufmt = "0.2.0"
+nb = "0.1.2"
+embedded-hal = "0.2.3"
+hd44780-driver = "0.4.0"
+heapless = { version = "0.7.16", features = ["ufmt-impl"] }
+rand = { version = "0.8.5", default-features = false, features = ["small_rng"] }
+
+[dependencies.arduino-hal]
+git = "https://github.com/rahix/avr-hal"
+features = ["arduino-uno"]
+
+# Configure the build for minimal size - AVRs have very little program memory
+[profile.dev]
+panic = "abort"
+lto = true
+opt-level = "s"
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+debug = true
+lto = true
+opt-level = "s"
