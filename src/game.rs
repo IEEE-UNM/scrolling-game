@@ -267,6 +267,10 @@ impl ScrollingGame {
 
     /// Resets the game.
     pub fn reset(&mut self) {
+        if !self.lost {
+            return;
+        }
+
         self.board = Self::DEFAULT_BOARD;
 
         // TODO: Maybe store highscore on EEEPROM
@@ -275,6 +279,7 @@ impl ScrollingGame {
         }
 
         self.score = 0;
+        self.lost = false;
     }
 
     /// Ticks the game forward in time.
