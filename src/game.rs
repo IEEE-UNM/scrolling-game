@@ -303,4 +303,9 @@ impl ScrollingGame {
     pub fn score(&self) -> u16 {
         self.score
     }
+
+    /// Gets the game status.
+    pub fn lost(&self) -> bool {
+        self.lost
+    }
 }

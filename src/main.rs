@@ -1,6 +1,7 @@
 #![no_std]
 #![no_main]
 
+use arduino_hal::prelude::_embedded_hal_serial_Read;
 use arduino_hal::Adc;
 use arduino_hal::{hal::usart::BaudrateArduinoExt, Delay, Usart};
 
@@ -68,7 +69,14 @@ fn main() -> ! {
     let mut game = ScrollingGame::new();
 
     loop {
-        game.move_player(Direction::from_serial(&mut serial));
-        game.tick(&mut lcd, &mut delay, &mut rng);
+        if game.lost() {
+            let input = serial.read().unwrap_or_default();
+            if input == 82 || input == 114 {
+                game.reset()
+            }
+        } else {
+            game.move_player(Direction::from_serial(&mut serial));
+            game.tick(&mut lcd, &mut delay, &mut rng);
+        }
     }
 }
