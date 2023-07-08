@@ -12,10 +12,12 @@ use rand::SeedableRng;
 
 use scrolling_game::direction::Direction;
 use scrolling_game::takes_ownership;
-use scrolling_game::{game::ScrollingGame, setup_lcd};
+use scrolling_game::setup_lcd;
+use scrolling_game::game::ScrollingGame;
 
 #[arduino_hal::entry]
 fn main() -> ! {
+    // Main Function
     let dp = arduino_hal::Peripherals::take().unwrap();
     let pins = arduino_hal::pins!(dp);
 
@@ -68,6 +70,10 @@ fn main() -> ! {
     // Game
     let mut game = ScrollingGame::new();
 
+    // Prints the intro
+    // Absolute path from external crate
+    scrolling_game::printer::print_intro(&mut serial);
+
     loop {
         if game.lost() {
             let input = serial.read().unwrap_or_default();
@@ -79,4 +85,5 @@ fn main() -> ! {
             game.tick(&mut lcd, &mut delay, &mut rng);
         }
     }
+    // Main Function End
 }

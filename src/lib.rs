@@ -92,3 +92,36 @@ pub fn takes_ownership<P: OutputPin>(mut d13: P) {
         Err(_) => panic!("Failed to set pin to high."),
     }
 }
+
+pub mod printer {
+    mod utility {
+        // Absolute path
+        pub fn print_line<T: crate::Write<u8>>(serial: &mut T) {
+            for _ in 0..10 {
+                // Printing "_"
+                match serial.write(0x5f) {
+                    _ => (),
+                };
+            }
+        }
+    }
+
+    // Relative path using super
+    pub fn print_intro<T: super::Write<u8>>(serial: &mut T) {
+        // Relative path
+        utility::print_line(serial);
+
+        let str = "w to move up.
+a to move left.
+s to move down.
+d to move right.";
+        for c in str.as_bytes() {
+            match serial.write(*c) {
+                _ => (),
+            }
+        }
+
+        // Relative path using self
+        self::utility::print_line(serial);
+    }
+}
