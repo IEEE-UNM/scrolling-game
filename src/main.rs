@@ -11,9 +11,9 @@ use rand::rngs::SmallRng;
 use rand::SeedableRng;
 
 use scrolling_game::direction::Direction;
-use scrolling_game::takes_ownership;
-use scrolling_game::setup_lcd;
 use scrolling_game::game::ScrollingGame;
+use scrolling_game::setup_lcd;
+use scrolling_game::takes_ownership;
 
 #[arduino_hal::entry]
 fn main() -> ! {
