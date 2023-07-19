@@ -95,7 +95,7 @@ pub fn takes_ownership<P: OutputPin>(mut d13: P) {
 
 pub mod printer {
     mod utility {
-        // Absolute path
+        // Absolute path (crate::Write<u8>)
         pub fn print_line<T: crate::Write<u8>>(serial: &mut T) {
             for _ in 0..10 {
                 // Printing "_"
@@ -124,4 +124,9 @@ d to move right.";
         // Relative path using self
         self::utility::print_line(serial);
     }
+}
+
+/// Gets the game score.
+pub fn get_game_score(game: &game::ScrollingGame) -> u16 {
+    game.score()
 }
