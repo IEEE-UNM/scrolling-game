@@ -193,7 +193,7 @@ impl ScrollingGame {
             // Line 2
             lcd.set_cursor_pos(40, delay).unwrap();
             // Shifting score by 12
-            let output_score = if self.score as i16 - 12 < 0 {
+            let output_score = if (self.score as i16) - 12 < 0 {
                 0
             } else {
                 self.score - 12
@@ -267,6 +267,7 @@ impl ScrollingGame {
 
     /// Resets the game.
     pub fn reset(&mut self) {
+        // Method code
         if !self.lost {
             return;
         }
