@@ -1,11 +1,10 @@
 #![no_std]
 #![no_main]
 
-use arduino_hal::prelude::_embedded_hal_serial_Read;
-use arduino_hal::Adc;
-use arduino_hal::{hal::usart::BaudrateArduinoExt, Delay, Usart};
-
 use panic_halt as _;
+
+use stm32f4xx_hal::pac;
+use stm32f4xx_hal::prelude::*;
 
 use rand::rngs::SmallRng;
 use rand::SeedableRng;
@@ -15,25 +14,20 @@ use scrolling_game::game::ScrollingGame;
 use scrolling_game::setup_lcd;
 use scrolling_game::takes_ownership;
 
-#[arduino_hal::entry]
+#[cortex_m_rt::entry]
 fn main() -> ! {
     // Main Function
-    let dp = arduino_hal::Peripherals::take().unwrap();
-    let pins = arduino_hal::pins!(dp);
+    // Setting Up Peripherals
+    let cp = pac::CorePeripherals::take().unwrap();
+    let dp = pac::Peripherals::take().unwrap();
+    let rcc = dp.RCC.constrain();
 
-    /*
-     * For examples (and inspiration), head to
-     *
-     *     https://github.com/Rahix/avr-hal/tree/main/examples
-     *
-     * NOTE: Not all examples were ported to all boards!  There is a good chance though, that code
-     * for a different board can be adapted for yours.  The Arduino Uno currently has the most
-     * examples available.
-     */
-    // Peripherals
-    let mut delay = Delay::new();
+    let pins = (dp.GPIOA.split(), dp.GPIOB.split());
+    let clocks = rcc.cfgr.sysclk(16.MHz()).pclk1(8.MHz()).freeze();
+
+    let mut delay = dp.TIM1.delay(&clocks);
     let mut serial = Usart::new(
-        dp.USART0,
+        dp.USART1,
         pins.d0.into(),
         pins.d1.into_output(),
         57600_u32.into_baudrate(),
