@@ -39,7 +39,7 @@ pub struct ScrollingGame {
     /// The current state of the game.
     board: [[GameObject; 16]; 2],
     /// How fast the game ticks.
-    tick_speed: u16,
+    tick_speed: u32,
 }
 
 impl ScrollingGame {
@@ -89,7 +89,7 @@ impl ScrollingGame {
             high_score: 0,
             lost: false,
             board: Self::DEFAULT_BOARD,
-            tick_speed: 500,
+            tick_speed: 0,
         }
     }
 
@@ -179,7 +179,7 @@ impl ScrollingGame {
     }
 
     /// Prints the current board into LCD.
-    fn print<B: DataBus, D: DelayUs<u16> + DelayMs<u8>>(
+    pub fn print<B: DataBus, D: DelayUs<u16> + DelayMs<u8>>(
         &mut self,
         lcd: &mut HD44780<B>,
         delay: &mut D,
@@ -289,15 +289,18 @@ impl ScrollingGame {
         lcd: &mut HD44780<B>,
         delay: &mut D,
         rng: &mut RNG,
+        counter: u32,
     ) {
-        self.shift_obstacles();
-        self.spawn_obstacles(rng);
-        if !self.lost {
-            self.score += 1;
+        if (counter as i32 - self.tick_speed as i32) < 0 {
+            self.shift_obstacles();
+            self.spawn_obstacles(rng);
+            if !self.lost {
+                self.score += 1;
+            }
+            self.print(lcd, delay);
         }
-        self.print(lcd, delay);
         // Delay the game
-        delay.delay_ms(self.tick_speed);
+        self.tick_speed = counter;
     }
 
     /// Gets the current score.

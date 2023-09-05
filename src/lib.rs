@@ -85,24 +85,24 @@ pub fn print_hello_serial<T: Write<u8>>(serial: &mut T) {
     }
 }
 
-/// Takes ownership of D13 and sets it to high.
-pub fn takes_ownership<P: OutputPin>(mut d13: P) {
-    match d13.set_high() {
-        Ok(_) => (),
-        Err(_) => panic!("Failed to set pin to high."),
-    }
-}
-
 pub mod printer {
+    use stm32f4xx_hal::block;
+
     mod utility {
+        use super::block;
+
         // Absolute path (crate::Write<u8>)
-        pub fn print_line<T: crate::Write<u8>>(serial: &mut T) {
-            for _ in 0..10 {
+        pub fn print_line<T: crate::Write<u8>>(
+            serial: &mut T,
+        ) {
+            for _ in 0..16 {
                 // Printing "_"
-                match serial.write(0x5f) {
+                match block!(serial.write(0x5f)) {
                     _ => (),
                 };
             }
+            // New Line
+            block!(serial.write(0x0A)).unwrap_or_default();
         }
     }
 
@@ -111,15 +111,17 @@ pub mod printer {
         // Relative path
         utility::print_line(serial);
 
-        let str = "w to move up.
-a to move left.
-s to move down.
-d to move right.";
+        let str = "u to move up.
+l to move left.
+d to move down.
+r to move right.";
         for c in str.as_bytes() {
-            match serial.write(*c) {
+            match block!(serial.write(*c)) {
                 _ => (),
             }
         }
+        // New Line
+        block!(serial.write(0x0A)).unwrap_or_default();
 
         // Relative path using self
         self::utility::print_line(serial);
