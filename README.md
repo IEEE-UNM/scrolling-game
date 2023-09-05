@@ -1,56 +1,64 @@
-`avr-hal-template`
-==================
-[`cargo-generate`] template for jumpstarting projects on common AVR
-microcontroller boards.  This template supports the following hardware at this
-time:
+# Scrolling Game
 
- - Arduino Leonardo
- - Arduino Mega 2560
- - Arduino Mega 1280
- - Arduino Nano
- - Arduino Nano New Bootloader (Manufactured after January 2018)
- - Arduino Uno
- - SparkFun ProMicro
- - Adafruit Trinket
- - Adafruit Trinket Pro
+A scrolling game on an HD44780 16x2 LCD using an STM32 F411RE Nucleo board written in Rust.
+
+It makes use of Knurling tools by [Ferrous Systems](http://ferrous-systems.com/) to help with programming the MCU.
 
 ## Usage
-If you don't have them already, install [`cargo-generate`] and [`ravedude`]:
+
+### Setup
+
+If you don't have them already, install [`flip-link`] and [`probe-run`]:
 
 ```bash
-cargo install cargo-generate
-cargo install ravedude
+cargo install flip-link
+cargo install probe-run
 ```
 
-Then instanciate this template:
+Clone this repository.
+
+``` bash
+git clone https://github.com/IEEE-UNM/scrolling-game.git
+cd scrolling-game
+```
+
+### Scrolling Game
+
+To run the scrolling game.
 
 ```bash
-cargo generate --git https://github.com/Rahix/avr-hal-template.git
+cargo run --bin scrolling-game
 ```
 
-You will be prompted to select your board - do so and you're ready to roll!
-Everything is prepared so you should be able to just
+[`flip-link`]: https://github.com/knurling-rs/flip-link
+[`probe-run`]: https://github.com/knurling-rs/probe-run
 
-```bash
-cargo run
+### Basic MCU Programes
+
+This repository also includes basic peripheral operations on the MCU. They are:
+
+- ADC (adc)
+- LED blinking (blinky)
+- Digital Input (digital-input)
+- Rust Ownership Showcase (ownership)
+- PWM (pwm)
+- Generating Random Numbers (rng)
+- USART (usart)
+
+They can be ran using their respective binary name shown in brackets above. For example for ADC:
+
+``` bash
+cargo run --bin adc
 ```
-
-and see a blinky flashed to your board!
-
-[`cargo-generate`]: https://github.com/cargo-generate/cargo-generate
-[`ravedude`]: https://github.com/Rahix/avr-hal/tree/next/ravedude
 
 ## License
-Licensed under either of
 
- - Apache License, Version 2.0
-   ([LICENSE-APACHE](LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>)
- - MIT license
-   ([LICENSE-MIT](LICENSE-MIT) or <http://opensource.org/licenses/MIT>)
+All code are licensed under GNU General Public License, Version 3.0 or later.
 
-at your option.
+All Fritzing schematics and images are licensed under [Creatie Commons Attribution-ShareAlike 4.0 International](https://creativecommons.org/licenses/by-sa/4.0/) (CC BY-SA 4.0).
 
 ## Contribution
+
 Unless you explicitly state otherwise, any contribution intentionally submitted
-for inclusion in the work by you, as defined in the Apache-2.0 license, shall
+for inclusion in the work by you, as defined in the GPL-3.0 or later license, shall
 be dual licensed as above, without any additional terms or conditions.
