@@ -4,19 +4,24 @@
 use defmt_rtt as _;
 use panic_halt as _;
 
-use stm32f4xx_hal::pac;
-use stm32f4xx_hal::prelude::*;
+use stm32l4xx_hal::prelude::*;
 
 #[cortex_m_rt::entry]
 fn main() -> ! {
-    let dp = pac::Peripherals::take().unwrap();
+    let cp = cortex_m::Peripherals::take().unwrap();
+    let dp = stm32l4xx_hal::pac::Peripherals::take().unwrap();
 
-    let gpioa = dp.GPIOA.split();
-    let mut led = gpioa.pa5.into_push_pull_output();
+    let mut flash = dp.FLASH.constrain();
+    let mut rcc = dp.RCC.constrain();
+    let mut pwr = dp.PWR.constrain(&mut rcc.apb1r1);
 
-    let rcc = dp.RCC.constrain();
-    let clocks = rcc.cfgr.use_hse(25.MHz()).sysclk(48.MHz()).freeze();
-    let mut delay = dp.TIM5.delay_us(&clocks);
+    let mut gpioa = dp.GPIOA.split(&mut rcc.ahb2);
+    let mut led = gpioa
+        .pa5
+        .into_push_pull_output(&mut gpioa.moder, &mut gpioa.otyper);
+
+    let clocks = rcc.cfgr.sysclk(48.MHz()).freeze(&mut flash.acr, &mut pwr);
+    let mut delay = stm32l4xx_hal::delay::Delay::new(cp.SYST, clocks);
 
     loop {
         led.set_high();

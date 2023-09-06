@@ -6,28 +6,43 @@
 use defmt_rtt as _;
 use panic_halt as _;
 
-use cortex_m_rt::entry;
-use stm32f4xx_hal::{
-    pac,
-    prelude::*,
-    timer::{Channel1, Channel2},
-};
+use stm32l4xx_hal::prelude::*;
 
-#[entry]
+#[cortex_m_rt::entry]
 fn main() -> ! {
-    let dp = pac::Peripherals::take().unwrap();
-    // Set up the system clock.
-    let rcc = dp.RCC.constrain();
-    let clocks = rcc.cfgr.freeze();
+    let dp = stm32l4xx_hal::pac::Peripherals::take().unwrap();
 
-    let gpioa = dp.GPIOA.split();
-    let channels = (Channel1::new(gpioa.pa8), Channel2::new(gpioa.pa9));
+    let mut flash = dp.FLASH.constrain();
+    let mut rcc = dp.RCC.constrain();
+    let mut pwr = dp.PWR.constrain(&mut rcc.apb1r1);
 
-    let pwm = dp.TIM1.pwm_hz(channels, 20.kHz(), &clocks).split();
-    let (mut ch1, _ch2) = pwm;
-    let max_duty = ch1.get_max_duty();
-    ch1.set_duty(max_duty / 2);
-    ch1.enable();
+    let clocks = rcc.cfgr.freeze(&mut flash.acr, &mut pwr);
+
+    let mut gpioa = dp.GPIOA.split(&mut rcc.ahb2);
+
+    // TIM2
+    let c1 = gpioa
+        .pa0
+        .into_alternate(&mut gpioa.moder, &mut gpioa.otyper, &mut gpioa.afrl);
+    let c2 = gpioa
+        .pa1
+        .into_alternate(&mut gpioa.moder, &mut gpioa.otyper, &mut gpioa.afrl);
+    let c3 = gpioa
+        .pa2
+        .into_alternate(&mut gpioa.moder, &mut gpioa.otyper, &mut gpioa.afrl);
+    let c4 = gpioa
+        .pa3
+        .into_alternate(&mut gpioa.moder, &mut gpioa.otyper, &mut gpioa.afrl);
+
+    let mut pwm = dp
+        .TIM2
+        .pwm((c1, c2, c3, c4), 1.kHz(), clocks, &mut rcc.apb1r1)
+        .3;
+
+    let max = pwm.get_max_duty();
+
+    pwm.enable();
+    pwm.set_duty(max / 2);
 
     loop {
         // Tells CPU to sleep

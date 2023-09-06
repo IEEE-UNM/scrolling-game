@@ -85,16 +85,16 @@ pub fn print_hello_serial<T: Write<u8>>(serial: &mut T) {
     }
 }
 
+/// Useful printing functions to print things into serial monitor.
 pub mod printer {
-    use stm32f4xx_hal::block;
+    use nb::block;
 
     mod utility {
         use super::block;
 
+        /// Prints a new line filled with "_".
         // Absolute path (crate::Write<u8>)
-        pub fn print_line<T: crate::Write<u8>>(
-            serial: &mut T,
-        ) {
+        pub fn print_line<T: crate::Write<u8>>(serial: &mut T) {
             for _ in 0..16 {
                 // Printing "_"
                 match block!(serial.write(0x5f)) {
@@ -106,6 +106,7 @@ pub mod printer {
         }
     }
 
+    /// Print an introduction message about the game.
     // Relative path using super
     pub fn print_intro<T: super::Write<u8>>(serial: &mut T) {
         // Relative path
@@ -126,9 +127,4 @@ r to move right.";
         // Relative path using self
         self::utility::print_line(serial);
     }
-}
-
-/// Gets the game score.
-pub fn get_game_score(game: &game::ScrollingGame) -> u16 {
-    game.score()
 }
