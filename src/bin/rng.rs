@@ -7,28 +7,26 @@ use panic_halt as _;
 use rand::SeedableRng;
 use rand::{rngs::SmallRng, Rng};
 
-use stm32f4xx_hal::{
-    adc::{
-        config::{AdcConfig, SampleTime},
-        Adc, Temperature,
-    },
-    pac,
-    prelude::*,
-};
+use stm32l4xx_hal::prelude::*;
 
 #[cortex_m_rt::entry]
 fn main() -> ! {
-    let dp = pac::Peripherals::take().unwrap();
+    let cp = cortex_m::Peripherals::take().unwrap();
+    let dp = stm32l4xx_hal::pac::Peripherals::take().unwrap();
+    let mut rcc = dp.RCC.constrain();
+    let mut flash = dp.FLASH.constrain();
+    let mut pwr = dp.PWR.constrain(&mut rcc.apb1r1);
+
+    let clocks = rcc.cfgr.freeze(&mut flash.acr, &mut pwr);
+    let mut delay = stm32l4xx_hal::delay::Delay::new(cp.SYST, clocks);
 
     // Setup ADC
-    let adc_config = AdcConfig::default();
-    let mut adc = Adc::adc1(dp.ADC1, true, adc_config);
+    let adc_common = stm32l4xx_hal::adc::AdcCommon::new(dp.ADC_COMMON, &mut rcc.ahb2);
+    let mut adc =
+        stm32l4xx_hal::adc::Adc::adc1(dp.ADC1, adc_common.clone(), &mut rcc.ccipr, &mut delay);
+    let mut temperature = adc.enable_temperature(&mut delay).unwrap();
 
-    let rcc = dp.RCC.constrain();
-    let clocks = rcc.cfgr.use_hse(25.MHz()).sysclk(48.MHz()).freeze();
-    let mut delay = dp.TIM5.delay_us(&clocks);
-
-    let seed = adc.convert(&Temperature, SampleTime::Cycles_480);
+    let seed = adc.read(&mut temperature).unwrap_or_default();
     let mut rng = SmallRng::seed_from_u64(seed as u64);
 
     loop {

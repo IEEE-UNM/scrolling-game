@@ -4,36 +4,35 @@
 use defmt_rtt as _;
 use panic_halt as _;
 
-use stm32f4xx_hal::{
-    adc::{
-        config::{AdcConfig, SampleTime},
-        Adc, Temperature,
-    },
-    pac,
-    prelude::*,
-};
+use stm32l4xx_hal::prelude::*;
 
 #[cortex_m_rt::entry]
 fn main() -> ! {
-    let dp = pac::Peripherals::take().unwrap();
+    let cp = cortex_m::Peripherals::take().unwrap();
+    let dp = stm32l4xx_hal::pac::Peripherals::take().unwrap();
+
+    let mut flash = dp.FLASH.constrain();
+    let mut rcc = dp.RCC.constrain();
+    let mut pwr = dp.PWR.constrain(&mut rcc.apb1r1);
 
     // Setup Analog Pin
-    let gpioa = dp.GPIOA.split();
-    let pin = gpioa.pa0.into_analog();
+    let mut gpioa = dp.GPIOA.split(&mut rcc.ahb2);
+    let mut pin = gpioa.pa0.into_analog(&mut gpioa.moder, &mut gpioa.pupdr);
+
+    let clocks = rcc.cfgr.sysclk(48.MHz()).freeze(&mut flash.acr, &mut pwr);
+    let mut delay = stm32l4xx_hal::delay::Delay::new(cp.SYST, clocks);
 
     // Setup ADC
-    let adc_config = AdcConfig::default();
-    let mut adc = Adc::adc1(dp.ADC1, true, adc_config);
-
-    let rcc = dp.RCC.constrain();
-    let clocks = rcc.cfgr.use_hse(25.MHz()).sysclk(48.MHz()).freeze();
-    let mut delay = dp.TIM5.delay_us(&clocks);
+    let adc_common = stm32l4xx_hal::adc::AdcCommon::new(dp.ADC_COMMON, &mut rcc.ahb2);
+    let mut adc =
+        stm32l4xx_hal::adc::Adc::adc1(dp.ADC1, adc_common.clone(), &mut rcc.ccipr, &mut delay);
+    let mut temperature = adc.enable_temperature(&mut delay).unwrap();
 
     loop {
-        let value = adc.convert(&pin, SampleTime::Cycles_480);
-        let voltage = adc.sample_to_millivolts(value);
+        let value = adc.read(&mut pin).unwrap_or_default();
+        let voltage = adc.to_millivolts(value);
         defmt::println!("Value: {}, {}mV", value, voltage);
-        let temp = adc.convert(&Temperature, SampleTime::Cycles_480);
+        let temp = adc.read(&mut temperature).unwrap_or_default();
         defmt::println!("Temperature: {}", temp);
         delay.delay_ms(500_u32);
     }

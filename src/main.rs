@@ -4,12 +4,17 @@
 use defmt_rtt as _;
 use panic_halt as _;
 
-use stm32f4xx_hal::adc::{
-    config::{AdcConfig, SampleTime},
-    Adc, Temperature,
+use stm32l4xx_hal::{
+    adc::{Adc, AdcCommon},
+    delay::Delay,
+    hal::timer::CountDown,
+    pac,
+    prelude::*,
+    serial::Serial,
+    timer::Timer,
 };
-use stm32f4xx_hal::prelude::*;
-use stm32f4xx_hal::{block, pac};
+
+use nb::block;
 
 use rand::rngs::SmallRng;
 use rand::SeedableRng;
@@ -22,39 +27,63 @@ use scrolling_game::setup_lcd;
 fn main() -> ! {
     // Main Function
     // Setting Up Peripherals
+    let cp = cortex_m::Peripherals::take().unwrap();
     let dp = pac::Peripherals::take().unwrap();
-    let rcc = dp.RCC.constrain();
+    let mut rcc = dp.RCC.constrain();
+    let mut flash = dp.FLASH.constrain();
+    let mut pwr = dp.PWR.constrain(&mut rcc.apb1r1);
 
-    let clocks = rcc.cfgr.use_hse(8.MHz()).freeze();
+    let clocks = rcc.cfgr.freeze(&mut flash.acr, &mut pwr);
     // GPIO
-    let gpioa = dp.GPIOA.split();
-    let gpiob = dp.GPIOB.split();
-    let gpioc = dp.GPIOC.split();
+    let mut gpioa = dp.GPIOA.split(&mut rcc.ahb2);
+    let mut gpiob = dp.GPIOB.split(&mut rcc.ahb2);
+    let mut gpioc = dp.GPIOC.split(&mut rcc.ahb2);
 
-    let mut delay = dp.TIM5.delay::<8_000_000>(&clocks);
-    let mut counter = dp.TIM1.counter_ms(&clocks);
-    counter.start(1000.millis()).unwrap();
-    let pins = (gpioa.pa2, gpioa.pa3);
-    let mut serial = dp.USART2.serial(pins, 9600.bps(), &clocks).unwrap();
+    let mut delay = Delay::new(cp.SYST, clocks);
+    let mut counter = Timer::tim2(dp.TIM2, 2.Hz(), clocks, &mut rcc.apb1r1);
+
+    // Serial
+    let tx = gpioa
+        .pa2
+        .into_alternate(&mut gpioa.moder, &mut gpioa.otyper, &mut gpioa.afrl);
+    let rx = gpioa
+        .pa3
+        .into_alternate(&mut gpioa.moder, &mut gpioa.otyper, &mut gpioa.afrl);
+    let mut serial = Serial::usart2(dp.USART2, (tx, rx), 9_600.bps(), clocks, &mut rcc.apb1r1);
+
     // Setup ADC
-    let adc_config = AdcConfig::default();
-    let mut adc = Adc::adc1(dp.ADC1, true, adc_config);
+    let adc_common = AdcCommon::new(dp.ADC_COMMON, &mut rcc.ahb2);
+    let mut adc = Adc::adc1(dp.ADC1, adc_common.clone(), &mut rcc.ccipr, &mut delay);
+    let mut temperature = adc.enable_temperature(&mut delay).unwrap();
 
     // LCD
     let mut lcd = setup_lcd(
-        gpioa.pa9.into_push_pull_output(),
-        gpioc.pc0.into_push_pull_output(),
-        gpiob.pb5.into_push_pull_output(),
-        gpiob.pb4.into_push_pull_output(),
-        gpiob.pb10.into_push_pull_output(),
-        gpioa.pa8.into_push_pull_output(),
+        gpioa
+            .pa9
+            .into_push_pull_output(&mut gpioa.moder, &mut gpioa.otyper),
+        gpioc
+            .pc0
+            .into_push_pull_output(&mut gpioc.moder, &mut gpioc.otyper),
+        gpiob
+            .pb5
+            .into_push_pull_output(&mut gpiob.moder, &mut gpiob.otyper),
+        gpiob
+            .pb4
+            .into_push_pull_output(&mut gpiob.moder, &mut gpiob.otyper),
+        gpiob
+            .pb10
+            .into_push_pull_output(&mut gpiob.moder, &mut gpiob.otyper),
+        gpioa
+            .pa8
+            .into_push_pull_output(&mut gpioa.moder, &mut gpioa.otyper),
         &mut delay,
     );
     lcd.clear(&mut delay).unwrap();
 
     // RNG
     // https://stackoverflow.com/questions/67627335/how-do-i-use-the-rand-crate-without-the-standard-library
-    let seed = adc.convert(&Temperature, SampleTime::Cycles_480) as u64;
+    // let seed = adc.convert(&Temperature, SampleTime::Cycles_480) as u64;
+    let seed = adc.read(&mut temperature).unwrap() as u64;
     let mut rng = SmallRng::seed_from_u64(seed);
 
     // Game
@@ -73,7 +102,9 @@ fn main() -> ! {
             }
         } else {
             game.move_player(Direction::from_serial(&mut serial));
-            game.tick(&mut lcd, &mut delay, &mut rng, counter.now().ticks());
+            if let Ok(_) = counter.wait() {
+                game.tick(&mut lcd, &mut delay, &mut rng, 0);
+            }
         }
     }
     // Main Function End
