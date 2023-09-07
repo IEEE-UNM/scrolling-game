@@ -12,7 +12,7 @@ use stm32l4xx_hal::{
 };
 
 /// Takes ownership of D13 and sets it to high.
-pub fn takes_ownership(mut d13: Pin<Output<PushPull>, L8, 'A', 5>) {
+pub fn takes_ownership(mut d13: Pin<Output<PushPull>, L8, 'B', 2>) {
     d13.set_high();
 }
 
@@ -26,10 +26,10 @@ fn main() -> ! {
     let mut pwr = dp.PWR.constrain(&mut rcc.apb1r1);
 
     // Setup pin
-    let mut gpioa = dp.GPIOA.split(&mut rcc.ahb2);
-    let led = gpioa
-        .pa5
-        .into_push_pull_output(&mut gpioa.moder, &mut gpioa.otyper);
+    let mut gpiob = dp.GPIOB.split(&mut rcc.ahb2);
+    let led = gpiob
+        .pb2
+        .into_push_pull_output(&mut gpiob.moder, &mut gpiob.otyper);
 
     // Setup delay
     let clocks = rcc.cfgr.sysclk(48.MHz()).freeze(&mut flash.acr, &mut pwr);

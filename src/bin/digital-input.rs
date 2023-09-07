@@ -15,10 +15,10 @@ fn main() -> ! {
     let mut rcc = dp.RCC.constrain();
     let mut pwr = dp.PWR.constrain(&mut rcc.apb1r1);
 
-    let mut gpioc = dp.GPIOC.split(&mut rcc.ahb2);
-    let button = gpioc
-        .pc13
-        .into_pull_down_input(&mut gpioc.moder, &mut gpioc.pupdr);
+    let mut gpioa = dp.GPIOA.split(&mut rcc.ahb2);
+    let button = gpioa
+        .pa0
+        .into_pull_down_input(&mut gpioa.moder, &mut gpioa.pupdr);
 
     let clocks = rcc.cfgr.sysclk(48.MHz()).freeze(&mut flash.acr, &mut pwr);
     let mut delay = stm32l4xx_hal::delay::Delay::new(cp.SYST, clocks);
