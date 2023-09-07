@@ -1,6 +1,6 @@
 # Scrolling Game
 
-A scrolling game on an HD44780 16x2 LCD using an STM32 F411RE Nucleo board written in Rust.
+A scrolling game on an HD44780 16x2 LCD using an STM32 L476VG Discovery board written in Rust.
 
 It makes use of Knurling tools by [Ferrous Systems](http://ferrous-systems.com/) to help with programming the MCU.
 
