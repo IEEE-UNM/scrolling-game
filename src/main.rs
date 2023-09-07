@@ -8,11 +8,11 @@ use stm32l4xx_hal::{
     adc::{Adc, AdcCommon},
     delay::Delay,
     hal::timer::CountDown,
-    pac,
     prelude::*,
     serial::Serial,
     timer::Timer,
 };
+use stm32l4xx_hal::pac;
 
 use nb::block;
 
