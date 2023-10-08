@@ -32,7 +32,7 @@ fn main() -> ! {
         .into_push_pull_output(&mut gpiob.moder, &mut gpiob.otyper);
 
     // Setup delay
-    let clocks = rcc.cfgr.sysclk(48.MHz()).freeze(&mut flash.acr, &mut pwr);
+    let clocks = rcc.cfgr.freeze(&mut flash.acr, &mut pwr);
     let mut delay = Delay::new(cp.SYST, clocks);
 
     defmt::println!("Moving Variable");
