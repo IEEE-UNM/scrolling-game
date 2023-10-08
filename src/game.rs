@@ -38,8 +38,6 @@ pub struct ScrollingGame {
     lost: bool,
     /// The current state of the game.
     board: [[GameObject; 16]; 2],
-    /// How fast the game ticks.
-    tick_speed: u32,
 }
 
 impl ScrollingGame {
@@ -89,7 +87,6 @@ impl ScrollingGame {
             high_score: 0,
             lost: false,
             board: Self::DEFAULT_BOARD,
-            tick_speed: 0,
         }
     }
 
@@ -97,7 +94,12 @@ impl ScrollingGame {
     ///
     /// This method does nothign if `None` is given but moves the
     /// player at the specified direction if specified.
-    pub fn move_player(&mut self, direction: Option<Direction>) {
+    pub fn move_player<B: DataBus, D: DelayUs<u16> + DelayMs<u16> + DelayMs<u8>>(
+        &mut self,
+        direction: Option<Direction>,
+        lcd: &mut HD44780<B>,
+        delay: &mut D,
+    ) {
         if direction.is_none() {
             return;
         }
@@ -176,6 +178,8 @@ impl ScrollingGame {
                 }
             }
         }
+
+        self.print(lcd, delay);
     }
 
     /// Prints the current board into LCD.
@@ -289,18 +293,13 @@ impl ScrollingGame {
         lcd: &mut HD44780<B>,
         delay: &mut D,
         rng: &mut RNG,
-        counter: u32,
     ) {
-        if (counter as i32 - self.tick_speed as i32) < 0 {
-            self.shift_obstacles();
-            self.spawn_obstacles(rng);
-            if !self.lost {
-                self.score += 1;
-            }
-            self.print(lcd, delay);
+        self.shift_obstacles();
+        self.spawn_obstacles(rng);
+        if !self.lost {
+            self.score += 1;
         }
-        // Delay the game
-        self.tick_speed = counter;
+        self.print(lcd, delay);
     }
 
     /// Gets the current score.

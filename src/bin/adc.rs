@@ -19,7 +19,7 @@ fn main() -> ! {
     let mut gpioa = dp.GPIOA.split(&mut rcc.ahb2);
     let mut pin = gpioa.pa0.into_analog(&mut gpioa.moder, &mut gpioa.pupdr);
 
-    let clocks = rcc.cfgr.sysclk(48.MHz()).freeze(&mut flash.acr, &mut pwr);
+    let clocks = rcc.cfgr.freeze(&mut flash.acr, &mut pwr);
     let mut delay = stm32l4xx_hal::delay::Delay::new(cp.SYST, clocks);
 
     // Setup ADC
