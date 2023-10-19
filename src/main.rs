@@ -4,14 +4,13 @@
 use defmt_rtt as _;
 use panic_halt as _;
 
-use stm32l4xx_hal::pac;
-use stm32l4xx_hal::{
-    adc::{Adc, AdcCommon},
-    delay::Delay,
-    hal::timer::CountDown,
+use stm32f4xx_hal::pac;
+use stm32f4xx_hal::{
+    adc::{
+        config::{AdcConfig, SampleTime},
+        Adc, Temperature,
+    },
     prelude::*,
-    serial::Serial,
-    timer::Timer,
 };
 
 use nb::block;
@@ -29,61 +28,42 @@ fn main() -> ! {
     // Setting Up Peripherals
     let cp = cortex_m::Peripherals::take().unwrap();
     let dp = pac::Peripherals::take().unwrap();
-    let mut rcc = dp.RCC.constrain();
-    let mut flash = dp.FLASH.constrain();
-    let mut pwr = dp.PWR.constrain(&mut rcc.apb1r1);
+    let rcc = dp.RCC.constrain();
 
-    let clocks = rcc.cfgr.freeze(&mut flash.acr, &mut pwr);
+    let clocks = rcc.cfgr.freeze();
     // GPIO
-    let mut gpioa = dp.GPIOA.split(&mut rcc.ahb2);
-    let mut gpiob = dp.GPIOB.split(&mut rcc.ahb2);
-    let mut gpiod = dp.GPIOD.split(&mut rcc.ahb2);
+    let gpioa = dp.GPIOA.split();
+    let gpiob = dp.GPIOB.split();
 
-    let mut delay = Delay::new(cp.SYST, clocks);
-    let mut counter = Timer::tim2(dp.TIM2, 2.Hz(), clocks, &mut rcc.apb1r1);
+    let mut delay = cp.SYST.delay(&clocks);
+    let mut counter = dp.TIM2.counter_ms(&clocks);
+    counter.start(1.secs()).unwrap();
 
     // Serial
-    let tx = gpiod
-        .pd5
-        .into_alternate(&mut gpiod.moder, &mut gpiod.otyper, &mut gpiod.afrl);
-    let rx = gpiod
-        .pd6
-        .into_alternate(&mut gpiod.moder, &mut gpiod.otyper, &mut gpiod.afrl);
-    let mut serial = Serial::usart2(dp.USART2, (tx, rx), 9_600.bps(), clocks, &mut rcc.apb1r1);
+    let mut serial = dp
+        .USART2
+        .serial((gpioa.pa2, gpioa.pa3), 9600.bps(), &clocks)
+        .unwrap();
 
     // Setup ADC
-    let adc_common = AdcCommon::new(dp.ADC_COMMON, &mut rcc.ahb2);
-    let mut adc = Adc::adc1(dp.ADC1, adc_common.clone(), &mut rcc.ccipr, &mut delay);
-    let mut temperature = adc.enable_temperature(&mut delay).unwrap();
+    let adc_config = AdcConfig::default();
+    let mut adc = Adc::adc1(dp.ADC1, true, adc_config);
 
     // LCD
     let mut lcd = setup_lcd(
-        gpioa
-            .pa0
-            .into_push_pull_output(&mut gpioa.moder, &mut gpioa.otyper),
-        gpioa
-            .pa5
-            .into_push_pull_output(&mut gpioa.moder, &mut gpioa.otyper),
-        gpioa
-            .pa1
-            .into_push_pull_output(&mut gpioa.moder, &mut gpioa.otyper),
-        gpioa
-            .pa2
-            .into_push_pull_output(&mut gpioa.moder, &mut gpioa.otyper),
-        gpioa
-            .pa3
-            .into_push_pull_output(&mut gpioa.moder, &mut gpioa.otyper),
-        gpiob
-            .pb6
-            .into_push_pull_output(&mut gpiob.moder, &mut gpiob.otyper),
+        gpioa.pa8.into_push_pull_output(),
+        gpiob.pb10.into_push_pull_output(),
+        gpiob.pb4.into_push_pull_output(),
+        gpiob.pb5.into_push_pull_output(),
+        gpiob.pb3.into_push_pull_output(),
+        gpioa.pa10.into_push_pull_output(),
         &mut delay,
     );
     lcd.clear(&mut delay).unwrap();
 
     // RNG
     // https://stackoverflow.com/questions/67627335/how-do-i-use-the-rand-crate-without-the-standard-library
-    // let seed = adc.convert(&Temperature, SampleTime::Cycles_480) as u64;
-    let seed = adc.read(&mut temperature).unwrap() as u64;
+    let seed = adc.convert(&Temperature, SampleTime::Cycles_480) as u64;
     let mut rng = SmallRng::seed_from_u64(seed);
 
     // Game

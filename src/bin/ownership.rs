@@ -4,15 +4,14 @@
 use defmt_rtt as _;
 use panic_halt as _;
 
-use stm32l4xx_hal::{
-    delay::Delay,
-    gpio::{Output, Pin, PushPull, L8},
+use stm32f4xx_hal::{
+    gpio::{Output, Pin, PushPull},
     pac,
     prelude::*,
 };
 
 /// Takes ownership of D13 and sets it to high.
-pub fn takes_ownership(mut d13: Pin<Output<PushPull>, L8, 'B', 2>) {
+pub fn takes_ownership(mut d13: Pin<'A', 5, Output<PushPull>>) {
     d13.set_high();
 }
 
@@ -21,19 +20,15 @@ fn main() -> ! {
     let cp = cortex_m::Peripherals::take().unwrap();
     let dp = pac::Peripherals::take().unwrap();
 
-    let mut flash = dp.FLASH.constrain();
-    let mut rcc = dp.RCC.constrain();
-    let mut pwr = dp.PWR.constrain(&mut rcc.apb1r1);
+    let rcc = dp.RCC.constrain();
 
     // Setup pin
-    let mut gpiob = dp.GPIOB.split(&mut rcc.ahb2);
-    let led = gpiob
-        .pb2
-        .into_push_pull_output(&mut gpiob.moder, &mut gpiob.otyper);
+    let gpioa = dp.GPIOA.split();
+    let led = gpioa.pa5.into_push_pull_output();
 
     // Setup delay
-    let clocks = rcc.cfgr.freeze(&mut flash.acr, &mut pwr);
-    let mut delay = Delay::new(cp.SYST, clocks);
+    let clocks = rcc.cfgr.freeze();
+    let mut delay = cp.SYST.delay(&clocks);
 
     defmt::println!("Moving Variable");
     // Moving 1

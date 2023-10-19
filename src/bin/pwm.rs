@@ -6,43 +6,33 @@
 use defmt_rtt as _;
 use panic_halt as _;
 
-use stm32l4xx_hal::prelude::*;
+use stm32f4xx_hal::prelude::*;
 
 #[cortex_m_rt::entry]
 fn main() -> ! {
-    let dp = stm32l4xx_hal::pac::Peripherals::take().unwrap();
+    let dp = stm32f4xx_hal::pac::Peripherals::take().unwrap();
 
-    let mut flash = dp.FLASH.constrain();
-    let mut rcc = dp.RCC.constrain();
-    let mut pwr = dp.PWR.constrain(&mut rcc.apb1r1);
+    let rcc = dp.RCC.constrain();
 
-    let clocks = rcc.cfgr.freeze(&mut flash.acr, &mut pwr);
+    let clocks = rcc.cfgr.freeze();
 
-    let mut gpioa = dp.GPIOA.split(&mut rcc.ahb2);
+    let gpioa = dp.GPIOA.split();
 
     // TIM2
-    let c1 = gpioa
-        .pa0
-        .into_alternate(&mut gpioa.moder, &mut gpioa.otyper, &mut gpioa.afrl);
-    let c2 = gpioa
-        .pa1
-        .into_alternate(&mut gpioa.moder, &mut gpioa.otyper, &mut gpioa.afrl);
-    let c3 = gpioa
-        .pa2
-        .into_alternate(&mut gpioa.moder, &mut gpioa.otyper, &mut gpioa.afrl);
-    let c4 = gpioa
-        .pa3
-        .into_alternate(&mut gpioa.moder, &mut gpioa.otyper, &mut gpioa.afrl);
+    let c1 = gpioa.pa0;
+    let c2 = gpioa.pa1;
 
-    let mut pwm = dp
-        .TIM2
-        .pwm((c1, c2, c3, c4), 1.kHz(), clocks, &mut rcc.apb1r1)
-        .3;
+    let channels = (
+        stm32f4xx_hal::timer::Channel1::new(c1),
+        stm32f4xx_hal::timer::Channel2::new(c2),
+    );
+    let pwm = dp.TIM2.pwm_hz(channels, 1_u32.kHz(), &clocks);
 
     let max = pwm.get_max_duty();
+    let (mut ch1, _) = pwm.split();
 
-    pwm.enable();
-    pwm.set_duty(max / 2);
+    ch1.set_duty(max / 2);
+    ch1.enable();
 
     loop {
         // Tells CPU to sleep

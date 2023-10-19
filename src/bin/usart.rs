@@ -4,31 +4,20 @@
 use defmt_rtt as _;
 use panic_halt as _;
 
-use stm32l4xx_hal::prelude::*;
+use stm32f4xx_hal::prelude::*;
 
 #[cortex_m_rt::entry]
 fn main() -> ! {
-    let dp = stm32l4xx_hal::pac::Peripherals::take().unwrap();
-    let mut flash = dp.FLASH.constrain();
-    let mut rcc = dp.RCC.constrain();
-    let mut pwr = dp.PWR.constrain(&mut rcc.apb1r1);
+    let dp = stm32f4xx_hal::pac::Peripherals::take().unwrap();
+    let rcc = dp.RCC.constrain();
 
-    let mut gpiod = dp.GPIOD.split(&mut rcc.ahb2);
+    let gpioa = dp.GPIOA.split();
 
-    let clocks = rcc.cfgr.freeze(&mut flash.acr, &mut pwr);
-    let tx = gpiod
-        .pd5
-        .into_alternate(&mut gpiod.moder, &mut gpiod.otyper, &mut gpiod.afrl);
-    let rx = gpiod
-        .pd6
-        .into_alternate(&mut gpiod.moder, &mut gpiod.otyper, &mut gpiod.afrl);
-    let mut serial = stm32l4xx_hal::serial::Serial::usart2(
-        dp.USART2,
-        (tx, rx),
-        9_600.bps(),
-        clocks,
-        &mut rcc.apb1r1,
-    );
+    let clocks = rcc.cfgr.freeze();
+    let mut serial = dp
+        .USART2
+        .serial((gpioa.pa2, gpioa.pa3), 9600.bps(), &clocks)
+        .unwrap();
 
     loop {
         if let Ok(c) = nb::block!(serial.read()) {
