@@ -15,6 +15,12 @@ cargo install flip-link
 cargo install probe-run
 ```
 
+In order for the binary to compile, the [`thumbv7em-none-eabihf`] target needs to be installed.
+
+```bash
+rustup target install thumbv7em-none-eabihf
+```
+
 Clone this repository.
 
 ``` bash
